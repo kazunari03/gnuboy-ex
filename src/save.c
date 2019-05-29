@@ -39,17 +39,17 @@ static int ver;
 static int sramblock, iramblock, vramblock;
 static int hramofs, hiofs, palofs, oamofs, wavofs;
 
-struct svar svars[] = 
+struct svar svars[] =
 {
 	I4("GbSs", &ver),
-	
+
 	I2("PC  ", &PC),
 	I2("SP  ", &SP),
 	I2("BC  ", &BC),
 	I2("DE  ", &DE),
 	I2("HL  ", &HL),
 	I2("AF  ", &AF),
-	
+
 	I4("IME ", &cpu.ime),
 	I4("ima ", &cpu.ima),
 	I4("spd ", &cpu.speed),
@@ -58,18 +58,18 @@ struct svar svars[] =
 	I4("tim ", &cpu.tim),
 	I4("lcdc", &cpu.lcdc),
 	I4("snd ", &cpu.snd),
-	
+
 	I1("ints", &hw.ilines),
 	I1("pad ", &hw.pad),
 	I4("cgb ", &hw.cgb),
 	I4("gba ", &hw.gba),
-	
+
 	I4("mbcm", &mbc.model),
 	I4("romb", &mbc.rombank),
 	I4("ramb", &mbc.rambank),
 	I4("enab", &mbc.enableram),
 	I4("batt", &mbc.batt),
-	
+
 	I4("rtcR", &rtc.sel),
 	I4("rtcL", &rtc.latch),
 	I4("rtcC", &rtc.carry),
@@ -96,18 +96,18 @@ struct svar svars[] =
 	I4("S2p ", &snd.ch[1].pos),
 	I4("S2c ", &snd.ch[1].cnt),
 	I4("S2ec", &snd.ch[1].encnt),
-	
+
 	I4("S3on", &snd.ch[2].on),
 	I4("S3p ", &snd.ch[2].pos),
 	I4("S3c ", &snd.ch[2].cnt),
-	
+
 	I4("S4on", &snd.ch[3].on),
 	I4("S4p ", &snd.ch[3].pos),
 	I4("S4c ", &snd.ch[3].cnt),
 	I4("S4ec", &snd.ch[3].encnt),
-	
+
 	I4("hdma", &hw.hdma),
-	
+
 	I4("sram", &sramblock),
 	I4("iram", &iramblock),
 	I4("vram", &vramblock),
@@ -115,16 +115,16 @@ struct svar svars[] =
 	I4("pal ", &palofs),
 	I4("oam ", &oamofs),
 	I4("wav ", &wavofs),
-	
+
 	/* NOSAVE is a special code to prevent the rest of the table
 	 * from being saved, used to support old stuff for backwards
 	 * compatibility... */
 	NOSAVE,
 
 	/* the following are obsolete as of 0x104 */
-	
+
 	I4("hram", &hramofs),
-	
+
 	R(P1), R(SB), R(SC),
 	R(DIV), R(TIMA), R(TMA), R(TAC),
 	R(IE), R(IF),
@@ -147,7 +147,7 @@ struct svar svars[] =
 	I1("DMA3", &R_HDMA3),
 	I1("DMA4", &R_HDMA4),
 	I1("DMA5", &R_HDMA5),
-	
+
 	END
 };
 
@@ -166,12 +166,12 @@ void loadstate(FILE *f)
 
 	fseek(f, 0, SEEK_SET);
 	fread(buf, 4096, 1, f);
-	
+
 	for (j = 0; header[j][0]; j++)
 	{
 		for (i = 0; svars[i].ptr; i++)
 		{
-			if (header[j][0] != *(un32 *)svars[i].key)
+			if (memcmp(&header[j][0], svars[i].key, 4))
 				continue;
 			d = LIL(header[j][1]);
 			switch (svars[i].len)
@@ -192,7 +192,7 @@ void loadstate(FILE *f)
 
 	/* obsolete as of version 0x104 */
 	if (hramofs) memcpy(ram.hi+128, buf+hramofs, 127);
-	
+
 	if (hiofs) memcpy(ram.hi, buf+hiofs, sizeof ram.hi);
 	if (palofs) memcpy(lcd.pal, buf+palofs, sizeof lcd.pal);
 	if (oamofs) memcpy(lcd.oam.mem, buf+oamofs, sizeof lcd.oam);
@@ -202,10 +202,10 @@ void loadstate(FILE *f)
 
 	fseek(f, iramblock<<12, SEEK_SET);
 	fread(ram.ibank, 4096, irl, f);
-	
+
 	fseek(f, vramblock<<12, SEEK_SET);
 	fread(lcd.vbank, 4096, vrl, f);
-	
+
 	fseek(f, sramblock<<12, SEEK_SET);
 	fread(ram.sbank, 4096, srl, f);
 }
@@ -232,7 +232,7 @@ void savestate(FILE *f)
 
 	for (i = 0; svars[i].len > 0; i++)
 	{
-		header[i][0] = *(un32 *)svars[i].key;
+		memcpy(&header[i][0], svars[i].key, 4);
 		switch (svars[i].len)
 		{
 		case 1:
@@ -256,13 +256,13 @@ void savestate(FILE *f)
 
 	fseek(f, 0, SEEK_SET);
 	fwrite(buf, 4096, 1, f);
-	
+
 	fseek(f, iramblock<<12, SEEK_SET);
 	fwrite(ram.ibank, 4096, irl, f);
-	
+
 	fseek(f, vramblock<<12, SEEK_SET);
 	fwrite(lcd.vbank, 4096, vrl, f);
-	
+
 	fseek(f, sramblock<<12, SEEK_SET);
 	fwrite(ram.sbank, 4096, srl, f);
 }
